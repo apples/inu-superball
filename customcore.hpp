@@ -66,6 +66,8 @@ public:
         int c;
 
         bool operator<(const Loc& in) const;
+        bool operator==(const Loc& in) const;
+        bool operator!=(const Loc& in) const;
     };
 
     CustomCore(const RenderParams &params);
@@ -78,14 +80,14 @@ public:
     void drawLinks();
     void drawFlash();
 
-    Color& cellAt(int r, int c);
+    Color& cellAt(const Loc& l);
 
-    void selectCell(int r, int c);
+    void selectCell(const Loc& l);
     void clearSelect();
 
-    void swapCells(int r1, int c1, int r2, int c2, bool force=false);
-    void scoreCell(int r, int c);
-    bool getGroup(int r, int c, Color k, std::set<Loc>& s);
+    void swapCells(const Loc& a, const Loc& b, bool force=false);
+    void scoreCell(const Loc& l);
+    bool getGroup(const Loc& l, Color k, std::set<Loc>& s);
 
     void flash();
 
@@ -98,6 +100,8 @@ public:
     int colorVal(Color c) const;
 
     void gameOver();
+
+    bool isScoreTile(const Loc& l) const;
 
 private:
     Inugami::Texture     colors[int(Color::COUNT)];
@@ -114,11 +118,12 @@ private:
         int scoreSpawn;
         int boardWidth;
         int boardHeight;
+        int minScore;
     } rules;
 
     std::vector<Color> board;
 
-    struct {int r; int c; bool on;} selection;
+    struct {Loc loc; bool on;} selection;
     struct {int timer; Color color;} flashing;
 
     int score;
@@ -139,6 +144,8 @@ private:
     int highScore;
 
     std::vector<int> pointList;
+
+    std::set<Loc> scoreZone;
 };
 
 #endif // CUSTOMCORE_H

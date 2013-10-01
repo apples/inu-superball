@@ -58,6 +58,16 @@ bool CustomCore::Loc::operator<(const Loc& in) const
     return (std::tie(r, c) < std::tie(in.r, in.c));
 }
 
+bool CustomCore::Loc::operator==(const Loc& in) const
+{
+    return (std::tie(r, c) == std::tie(in.r, in.c));
+}
+
+bool CustomCore::Loc::operator!=(const Loc& in) const
+{
+    return (std::tie(r, c) != std::tie(in.r, in.c));
+}
+
 CustomCore::CustomCore(const RenderParams &params)
     : Core(params)
 
@@ -79,11 +89,11 @@ CustomCore::CustomCore(const RenderParams &params)
     , piece(Geometry::fromDisc(0.9f, 0.9f, 16))
     , diamond(Geometry::fromDisc(0.3f, 0.3f, 4))
 
-    , rules{5, 5, 3, 10, 8}
+    , rules{5, 5, 3, 10, 8, 5}
 
     , board(rules.boardWidth*rules.boardHeight, Color::NONE)
 
-    , selection{-1, -1, false}
+    , selection{{-1, -1}, false}
     , flashing{-1, Color::NONE}
 
     , score(0)
@@ -103,6 +113,8 @@ CustomCore::CustomCore(const RenderParams &params)
     , prevScore(-1)
     , highScore(-1)
     , pointList()
+
+    , scoreZone()
 {
     ScopedProfile prof(profiler, "CustomCore: Constructor");
 
@@ -110,6 +122,23 @@ CustomCore::CustomCore(const RenderParams &params)
     addCallback([&]{tick();draw();}, 60.0);
 
     setWindowTitle("Inu SuperBall", true);
+
+#if 0
+    for (int r=2; r<6; ++r)
+    {
+        for (int c=0; c<2;  ++c) scoreZone.insert({r, c});
+        for (int c=8; c<10; ++c) scoreZone.insert({r, c});
+    }
+#else
+    {
+        std::uniform_int_distribution<int> rd(0, rules.boardHeight-1);
+        std::uniform_int_distribution<int> cd(0, rules.boardWidth-1);
+        while (scoreZone.size() < 10)
+        {
+            scoreZone.insert({rd(rng), cd(rng)});
+        }
+    }
+#endif
 
     spawn(rules.swapSpawn);
 }
@@ -154,28 +183,27 @@ void CustomCore::tick()
     float mx = mPos.x/10.0;
     float my = mPos.y/10.0-5.f;
 
-    int cc = mx/6.f;
-    int cr = my/6.f;
+    Loc loc{my/6.f, mx/6.f};
 
-    hoverCell.r = cr;
-    hoverCell.c = cc;
+    hoverCell.r = loc.r;
+    hoverCell.c = loc.c;
 
     hoverGroup.clear();
 
     hoverScore = false;
 
     bool inBoard = (
-            cc>=0 && cc<rules.boardWidth
-         && cr>=0 && cr<rules.boardHeight
+            loc.c>=0 && loc.c<rules.boardWidth
+         && loc.r>=0 && loc.r<rules.boardHeight
     );
 
     if (inBoard)
     {
-        Color cat = cellAt(cr, cc);
+        Color cat = cellAt(loc);
 
         if (cat != Color::NONE)
         {
-            hoverScore = getGroup(cr, cc, cat, hoverGroup);
+            hoverScore = getGroup(loc, cat, hoverGroup);
         }
     }
 
@@ -183,7 +211,7 @@ void CustomCore::tick()
     {
         if (inBoard)
         {
-            selectCell(cr, cc);
+            selectCell(loc);
         }
     }
 
@@ -243,6 +271,8 @@ void CustomCore::drawBoard()
     {
         for (int c=0; c<rules.boardWidth; ++c)
         {
+            const Loc loc = {r, c};
+
             mat.push();
 
             Vec3 toPanel{c*1.2f, r*-1.2f, 0.f};
@@ -252,7 +282,7 @@ void CustomCore::drawBoard()
 
             Color pc = Color::NONE;
 
-            if (selection.on && selection.r == r && selection.c == c)
+            if (selection.on && selection.loc == loc)
             {
                 pc = Color::WHITE;
             }
@@ -260,10 +290,10 @@ void CustomCore::drawBoard()
             colors[int(pc)].bind(0);
             panel.draw();
 
-            Color& cell = cellAt(r, c);
+            Color& cell = cellAt(loc);
 
-            if ((swapAnim.c[0].r!=r || swapAnim.c[0].c!=c)
-             && (swapAnim.c[1].r!=r || swapAnim.c[1].c!=c)
+            if ((swapAnim.c[0] != loc)
+             && (swapAnim.c[1] != loc)
              && cell != Color::NONE)
             {
                 colors[int(cell)].bind(0);
@@ -286,8 +316,7 @@ void CustomCore::drawBoard()
                 }
             }
 
-            if (r>=2 && r<6
-             && (c<2 || c>=8))
+            if (isScoreTile(loc))
             {
                 colors[int(Color::WHITE)].bind(0);
                 diamond.draw();
@@ -310,7 +339,7 @@ void CustomCore::drawBoard()
         for (int i=0; i<2; ++i)
         {
             Loc& l = swapAnim.c[i];
-            Color col = cellAt(swapAnim.c[1-i].r, swapAnim.c[1-i].c);
+            Color col = cellAt(swapAnim.c[1-i]);
 
             colors[int(col)].bind(0);
 
@@ -330,10 +359,8 @@ void CustomCore::drawBoard()
             swapAnim.deg += 5.f;
             if (swapAnim.deg >= 180.f)
             {
-                swapAnim.c[0].r = -1;
-                swapAnim.c[0].c = -1;
-                swapAnim.c[1].r = -1;
-                swapAnim.c[1].c = -1;
+                swapAnim.c[0] = {-1, -1};
+                swapAnim.c[1] = {-1, -1};
             }
 
             mat.pop();
@@ -431,7 +458,7 @@ void CustomCore::drawLinks()
 
     constexpr float panelSize = 5.f;
 
-    Color rain = cellAt(hoverCell.r, hoverCell.c);
+    Color rain = cellAt(hoverCell);
     colors[int(rain)].bind(0);
 
     mat.translate(Vec3{-40.f, 30.f, 0.f});
@@ -483,23 +510,22 @@ void CustomCore::drawFlash()
     --flashing.timer;
 }
 
-CustomCore::Color& CustomCore::cellAt(int r, int c)
+CustomCore::Color& CustomCore::cellAt(const Loc& loc)
 {
-    return board[r*10+c];
+    return board[loc.r*rules.boardWidth+loc.c];
 }
 
-void CustomCore::selectCell(int r, int c)
+void CustomCore::selectCell(const Loc& loc)
 {
     if (selection.on)
     {
-        if (r == selection.r && c == selection.c) scoreCell(r, c);
-        else swapCells(r, c, selection.r, selection.c);
+        if (loc == selection.loc) scoreCell(loc);
+        else swapCells(loc, selection.loc);
         selection.on = false;
     }
     else
     {
-        selection.r = r;
-        selection.c = c;
+        selection.loc = loc;
         selection.on = true;
     }
 }
@@ -509,35 +535,33 @@ void CustomCore::clearSelect()
     selection.on = false;
 }
 
-void CustomCore::swapCells(int r1, int c1, int r2, int c2, bool force)
+void CustomCore::swapCells(const Loc& a, const Loc& b, bool force)
 {
-    Color& cell1 = cellAt(r1, c1);
-    Color& cell2 = cellAt(r2, c2);
+    Color& cell1 = cellAt(a);
+    Color& cell2 = cellAt(b);
 
     if (cell1 == Color::NONE || cell2 == Color::NONE) return flash();
     if (!force && cell1 == cell2) return flash();
 
     std::swap(cell1, cell2);
 
-    swapAnim.c[0].r = r1;
-    swapAnim.c[0].c = c1;
-    swapAnim.c[1].r = r2;
-    swapAnim.c[1].c = c2;
+    swapAnim.c[0] = a;
+    swapAnim.c[1] = b;
     swapAnim.deg = 0.f;
-    swapAnim.px = (c1+c2)/2.f;
-    swapAnim.py = (r1+r2)/2.f;
+    swapAnim.px = (a.c+b.c)/2.f;
+    swapAnim.py = (a.r+b.r)/2.f;
 
     return spawn(5);
 }
 
-void CustomCore::scoreCell(int r, int c)
+void CustomCore::scoreCell(const Loc& loc)
 {
-    Color& cell = cellAt(r, c);
+    Color& cell = cellAt(loc);
     if (cell == Color::NONE) return flash();
 
     std::set<Loc> group;
 
-    bool isScoring = getGroup(r, c, cell, group);
+    bool isScoring = getGroup(loc, cell, group);
 
     if (!isScoring)       return flash();
     if (group.size() < 5) return flash();
@@ -548,29 +572,29 @@ void CustomCore::scoreCell(int r, int c)
     if (pointList.size() == 10) pointList.erase(begin(pointList));
     pointList.push_back(s);
 
-    for (const Loc& l : group) cellAt(l.r, l.c) = Color::NONE;
+    for (const Loc& l : group) cellAt(l) = Color::NONE;
 
     shake_n_bake(s);
 
     return spawn(3);
 }
 
-bool CustomCore::getGroup(int r, int c, Color k, std::set<Loc>& s)
+bool CustomCore::getGroup(const Loc& loc, Color k, std::set<Loc>& s)
 {
-    Color& cell = cellAt(r, c);
+    Color& cell = cellAt(loc);
     if (cell != k) return false;
 
-    if (!s.insert({r, c}).second) return false;
+    if (!s.insert(loc).second) return false;
 
-    bool isScoring = (r>=2 && r<6 && (c<2 || c>=8));
+    bool isScoring = isScoreTile(loc);
 
     int a = rules.boardHeight-1;
     int b = rules.boardWidth-1;
 
-    if (r>0) isScoring += getGroup(r-1, c, k, s);
-    if (r<a) isScoring += getGroup(r+1, c, k, s);
-    if (c>0) isScoring += getGroup(r, c-1, k, s);
-    if (c<b) isScoring += getGroup(r, c+1, k, s);
+    if (loc.r>0) isScoring += getGroup({loc.r-1, loc.c}, k, s);
+    if (loc.r<a) isScoring += getGroup({loc.r+1, loc.c}, k, s);
+    if (loc.c>0) isScoring += getGroup({loc.r, loc.c-1}, k, s);
+    if (loc.c<b) isScoring += getGroup({loc.r, loc.c+1}, k, s);
 
     return isScoring;
 }
@@ -612,36 +636,29 @@ void CustomCore::galoSengen()
     int scoreSize = 0;
     int scoreVal = 0;
 
-    for (int r=2; r<6; ++r)
+    for (const auto& loc : scoreZone)
     {
-        auto doit = [&](int c)
+        const Color& cell = cellAt(loc);
+        if (cell == Color::NONE) continue;
+
+        std::set<Loc> group;
+        getGroup(loc, cell, group);
+
+        int cscore = colorVal(cell);
+
+        if (cscore*group.size() > scoreVal)
         {
-            Color& cell = cellAt(r, c);
-            if (cell == Color::NONE) return;
-
-            std::set<Loc> group;
-            getGroup(r, c, cell, group);
-
-            int cscore = colorVal(cellAt(r, c));
-
-            if (cscore*group.size() > scoreVal)
-            {
-                scoreLoc.r = r;
-                scoreLoc.c = c;
-                scoreSize = group.size();
-                scoreVal = cscore*group.size();
-            }
-        };
-
-        for (int c=0; c<2; ++c) doit(c);
-        for (int c=8; c<10; ++c) doit(c);
+            scoreLoc = loc;
+            scoreSize = group.size();
+            scoreVal = cscore*group.size();
+        }
     }
 
-    if (scoreSize >= 5) return scoreCell(scoreLoc.r, scoreLoc.c);
+    if (scoreSize >= rules.minScore) return scoreCell(scoreLoc);
 
     auto weight = [&](const Loc& l)
     {
-        int s = int(cellAt(l.r, l.c));
+        int s = int(cellAt(l));
         int rval = 0;
 
         std::set<Color> nbor;
@@ -672,7 +689,7 @@ void CustomCore::galoSengen()
 
                 int w = 1+2*x-(((i<0)?-i:i)+((j<0)?-j:j));
 
-                comp(cellAt(r, c), w);
+                comp(cellAt({r, c}), w);
             }
         }
 
@@ -692,7 +709,8 @@ void CustomCore::galoSengen()
     {
         for (int c=0; c<rules.boardHeight; ++c)
         {
-            if (cellAt(r, c) != Color::NONE) swappables.push_back({r, c});
+            Loc loc{r, c};
+            if (cellAt(loc) != Color::NONE) swappables.push_back(loc);
         }
     }
 
@@ -703,7 +721,7 @@ void CustomCore::galoSengen()
 
     int i = 1;
 
-    while (cellAt(loc1.r, loc1.c) == cellAt(swappables[i].r, swappables[i].c))
+    while (cellAt(loc1) == cellAt(swappables[i]))
     {
         ++i;
         if (i >= swappables.size()-1)
@@ -715,8 +733,7 @@ void CustomCore::galoSengen()
 
     const Loc& loc2 = swappables[i];
 
-
-    return swapCells(loc1.r, loc1.c, loc2.r, loc2.c, true);
+    return swapCells(loc1, loc2, true);
 }
 
 void CustomCore::shake_n_bake(int s)
@@ -737,4 +754,9 @@ void CustomCore::gameOver()
     for (Color& c : board) c = Color::NONE;
     spawn(rules.swapSpawn);
     pointList.clear();
+}
+
+bool CustomCore::isScoreTile(const Loc& loc) const
+{
+    return (scoreZone.find(loc) != end(scoreZone));
 }
