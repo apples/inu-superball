@@ -135,8 +135,6 @@
 		</Linker>
 		<Unit filename="customcore.cpp" />
 		<Unit filename="customcore.hpp" />
-		<Unit filename="galosengen.cpp" />
-		<Unit filename="galosengen.h" />
 		<Unit filename="inugami/animatedsprite.cpp">
 			<Option virtualFolder="Resource Handles/" />
 		</Unit>
