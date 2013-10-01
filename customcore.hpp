@@ -45,11 +45,14 @@ public:
     enum class Color
     {
         NONE
-        , PURPLE
+        , MAGENTA
         , BLUE
         , YELLOW
-        , RED
         , GREEN
+        , RED
+        , CYAN
+        , VIOLET
+        , BLACK
 
         , WHITE
 
@@ -80,13 +83,21 @@ public:
     void selectCell(int r, int c);
     void clearSelect();
 
-    void swapCells(int r1, int c1, int r2, int c2);
+    void swapCells(int r1, int c1, int r2, int c2, bool force=false);
     void scoreCell(int r, int c);
     bool getGroup(int r, int c, Color k, std::set<Loc>& s);
 
     void flash();
 
-    void spawnFive();
+    void spawn(int n);
+
+    void galoSengen();
+
+    void shake_n_bake(int s);
+
+    int colorVal(Color c) const;
+
+    void gameOver();
 
 private:
     Inugami::Texture     colors[int(Color::COUNT)];
@@ -95,6 +106,15 @@ private:
     Inugami::Mesh    panel;
     Inugami::Mesh    piece;
     Inugami::Mesh    diamond;
+
+    struct
+    {
+        int numColors;
+        int swapSpawn;
+        int scoreSpawn;
+        int boardWidth;
+        int boardHeight;
+    } rules;
 
     std::vector<Color> board;
 
@@ -106,6 +126,19 @@ private:
     Loc hoverCell;
     std::set<Loc> hoverGroup;
     bool hoverScore;
+
+    std::mt19937 rng;
+
+    struct {float px, py, deg; Loc c[2];} swapAnim;
+    std::set<Color*> spawning;
+    float spawnScale;
+
+    float screenShake;
+
+    int prevScore;
+    int highScore;
+
+    std::vector<int> pointList;
 };
 
 #endif // CUSTOMCORE_H
