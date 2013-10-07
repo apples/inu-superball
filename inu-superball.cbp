@@ -133,8 +133,12 @@
 			<Add library="glfw3" />
 			<Add library="png" />
 		</Linker>
+		<Unit filename="DJ.h" />
 		<Unit filename="customcore.cpp" />
 		<Unit filename="customcore.hpp" />
+		<Unit filename="dj.cpp" />
+		<Unit filename="galosengen.cpp" />
+		<Unit filename="galosengen.hpp" />
 		<Unit filename="inugami/animatedsprite.cpp">
 			<Option virtualFolder="Resource Handles/" />
 		</Unit>
@@ -261,6 +265,8 @@
 		<Unit filename="inugami/utility.hpp">
 			<Option virtualFolder="Utilities/" />
 		</Unit>
+		<Unit filename="libexecstream/exec-stream.cpp" />
+		<Unit filename="libexecstream/exec-stream.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="meta.cpp" />
 		<Unit filename="meta.hpp" />

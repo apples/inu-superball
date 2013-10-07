@@ -26,6 +26,7 @@
  ******************************************************************************/
 
 #include "customcore.hpp"
+#include "galosengen.hpp"
 
 #include "meta.hpp"
 
@@ -91,7 +92,7 @@ CustomCore::CustomCore(const RenderParams &params)
 
     , rules{5, 5, 3, 10, 8, 5}
 
-    , board(rules.boardWidth*rules.boardHeight, Color::NONE)
+    , board(rules.width*rules.height, Color::NONE)
 
     , selection{{-1, -1}, false}
     , flashing{-1, Color::NONE}
@@ -101,6 +102,8 @@ CustomCore::CustomCore(const RenderParams &params)
     , hoverCell{-1, -1}
     , hoverGroup()
     , hoverScore(false)
+
+    , isGameOver(false)
 
     , rng(time(nullptr))
 
@@ -123,16 +126,16 @@ CustomCore::CustomCore(const RenderParams &params)
 
     setWindowTitle("Inu SuperBall", true);
 
-#if 0
-    for (int r=2; r<6; ++r)
+#if 1
+    for (int r=2; r<rules.height-2; ++r)
     {
-        for (int c=0; c<2;  ++c) scoreZone.insert({r, c});
-        for (int c=8; c<10; ++c) scoreZone.insert({r, c});
+        for (int c=0; c<2; ++c) scoreZone.insert({r, c});
+        for (int c=rules.width-2; c<rules.width; ++c) scoreZone.insert({r, c});
     }
 #else
     {
-        std::uniform_int_distribution<int> rd(0, rules.boardHeight-1);
-        std::uniform_int_distribution<int> cd(0, rules.boardWidth-1);
+        std::uniform_int_distribution<int> rd(0, rules.height-1);
+        std::uniform_int_distribution<int> cd(0, rules.width-1);
         while (scoreZone.size() < 10)
         {
             scoreZone.insert({rd(rng), cd(rng)});
@@ -166,12 +169,16 @@ void CustomCore::tick()
 
     if (keyReset.pressed())
     {
+        if (!isGameOver) gameOver();
         gameOver();
     }
 
-    if (keyAI.pressed() || (keyAI && keyFast))
+    if (!isGameOver && keyFast) galoSengen();
+
+    if (keyAI.pressed())
     {
-        galoSengen();
+        if (isGameOver) gameOver();
+        else galoSengen();
     }
 
     if (keyFlood.pressed())
@@ -193,8 +200,8 @@ void CustomCore::tick()
     hoverScore = false;
 
     bool inBoard = (
-            loc.c>=0 && loc.c<rules.boardWidth
-         && loc.r>=0 && loc.r<rules.boardHeight
+            loc.c>=0 && loc.c<rules.width
+         && loc.r>=0 && loc.r<rules.height
     );
 
     if (inBoard)
@@ -267,9 +274,9 @@ void CustomCore::drawBoard()
     mat.scale(Vec3{panelSize, panelSize, 1.f});
     mat.translate(Vec3{0.6f, -1.6f, 0.f});
 
-    for (int r=0; r<rules.boardHeight; ++r)
+    for (int r=0; r<rules.height; ++r)
     {
-        for (int c=0; c<rules.boardWidth; ++c)
+        for (int c=0; c<rules.width; ++c)
         {
             const Loc loc = {r, c};
 
@@ -280,7 +287,7 @@ void CustomCore::drawBoard()
             mat.translate(toPanel);
             modelMatrix(mat);
 
-            Color pc = Color::NONE;
+            Color pc = isGameOver? Color::BLACK : Color::NONE;
 
             if (selection.on && selection.loc == loc)
             {
@@ -330,7 +337,11 @@ void CustomCore::drawBoard()
     {
         spawnScale *= 1.25f;
 
-        if (spawnScale >= 1.f) spawning.clear();
+        if (spawnScale >= 1.f)
+        {
+            spawnScale = 0.05f;
+            spawning.clear();
+        }
     }
 
     if (swapAnim.c[0].r != -1) //lazy check
@@ -359,8 +370,12 @@ void CustomCore::drawBoard()
             swapAnim.deg += 5.f;
             if (swapAnim.deg >= 180.f)
             {
-                swapAnim.c[0] = {-1, -1};
-                swapAnim.c[1] = {-1, -1};
+                swapAnim.deg = 0.f;
+                if (!isGameOver)
+                {
+                    swapAnim.c[0] = {-1, -1};
+                    swapAnim.c[1] = {-1, -1};
+                }
             }
 
             mat.pop();
@@ -448,8 +463,8 @@ void CustomCore::drawScore()
 
 void CustomCore::drawLinks()
 {
-    if (hoverCell.r<0 || hoverCell.r>=8
-     || hoverCell.c<0 || hoverCell.c>=10)
+    if (hoverCell.r<0 || hoverCell.r>=rules.height
+     || hoverCell.c<0 || hoverCell.c>=rules.width)
     {
         return;
     }
@@ -512,7 +527,7 @@ void CustomCore::drawFlash()
 
 CustomCore::Color& CustomCore::cellAt(const Loc& loc)
 {
-    return board[loc.r*rules.boardWidth+loc.c];
+    return board[loc.r*rules.width+loc.c];
 }
 
 void CustomCore::selectCell(const Loc& loc)
@@ -588,8 +603,8 @@ bool CustomCore::getGroup(const Loc& loc, Color k, std::set<Loc>& s)
 
     bool isScoring = isScoreTile(loc);
 
-    int a = rules.boardHeight-1;
-    int b = rules.boardWidth-1;
+    int a = rules.height-1;
+    int b = rules.width-1;
 
     if (loc.r>0) isScoring += getGroup({loc.r-1, loc.c}, k, s);
     if (loc.r<a) isScoring += getGroup({loc.r+1, loc.c}, k, s);
@@ -632,108 +647,55 @@ void CustomCore::spawn(int n)
 
 void CustomCore::galoSengen()
 {
-    Loc scoreLoc;
-    int scoreSize = 0;
-    int scoreVal = 0;
+    GaloSengen gs(rules.width, rules.height, rules.minScore, "pbygr");
 
-    for (const auto& loc : scoreZone)
-    {
-        const Color& cell = cellAt(loc);
-        if (cell == Color::NONE) continue;
+    std::vector<std::string> bored(rules.height, std::string(rules.width, '.'));
 
-        std::set<Loc> group;
-        getGroup(loc, cell, group);
-
-        int cscore = colorVal(cell);
-
-        if (cscore*group.size() > scoreVal)
-        {
-            scoreLoc = loc;
-            scoreSize = group.size();
-            scoreVal = cscore*group.size();
-        }
-    }
-
-    if (scoreSize >= rules.minScore) return scoreCell(scoreLoc);
-
-    auto weight = [&](const Loc& l)
-    {
-        int s = int(cellAt(l));
-        int rval = 0;
-
-        std::set<Color> nbor;
-
-        auto comp = [&](Color c, int w)
-        {
-            int i = int(c);
-            if (i==s) rval += w;
-            else nbor.insert(c);
-        };
-
-        int x = 3;
-
-        for (int i=-x; i<=x; ++i)
-        {
-            for (int j=-x; j<=x; ++j)
-            {
-                if (i==0 && j==0) continue;
-
-                int r = l.r+i;
-                int c = l.c+j;
-
-                if (r<0 || r>=rules.boardHeight
-                 || c<0 || c>=rules.boardWidth)
-                {
-                    continue;
-                }
-
-                int w = 1+2*x-(((i<0)?-i:i)+((j<0)?-j:j));
-
-                comp(cellAt({r, c}), w);
-            }
-        }
-
-        for (Color i : nbor) rval -= int(i)/2;
-
-        return rval;
+    std::map<Color, char> conv = {
+          {Color::NONE   , '.'}
+        , {Color::MAGENTA, 'p'}
+        , {Color::BLUE   , 'b'}
+        , {Color::YELLOW , 'y'}
+        , {Color::GREEN  , 'g'}
+        , {Color::RED    , 'r'}
     };
 
-    auto pred = [&](const Loc& a, const Loc& b)
+    for (unsigned r=0; r<rules.height; ++r)
     {
-        return (weight(a) < weight(b));
-    };
-
-    std::vector<Loc> swappables;
-
-    for (int r=0; r<rules.boardHeight; ++r)
-    {
-        for (int c=0; c<rules.boardHeight; ++c)
+        for (unsigned c=0; c<rules.width; ++c)
         {
-            Loc loc{r, c};
-            if (cellAt(loc) != Color::NONE) swappables.push_back(loc);
+            bored[r][c] = conv[cellAt({r, c})];
         }
     }
 
-    std::shuffle(begin(swappables), end(swappables), rng);
-    std::sort(begin(swappables), end(swappables), pred);
+    auto act = gs.play(bored);
 
-    const Loc& loc1 = swappables[0];
+    auto str = act->str();
 
-    int i = 1;
+    logger->log<3>(str);
 
-    while (cellAt(loc1) == cellAt(swappables[i]))
+    std::stringstream ss(str);
+
+    std::string action;
+    ss >> action;
+
+    if (action == "SWAP")
     {
-        ++i;
-        if (i >= swappables.size()-1)
-        {
-            i = swappables.size()-1;
-            break;
-        }
+        Loc locs[2];
+        ss >> locs[0].r >> locs[0].c >> locs[1].r >> locs[1].c;
+
+        return swapCells(locs[0], locs[1], true);
     }
 
-    const Loc& loc2 = swappables[i];
+    if (action == "SCORE")
+    {
+        Loc loc;
+        ss >> loc.r >> loc.c;
 
-    return swapCells(loc1, loc2, true);
+        return scoreCell(loc);
+    }
+
+    return flash();
 }
 
 void CustomCore::shake_n_bake(int s)
@@ -748,6 +710,13 @@ int CustomCore::colorVal(Color c) const
 
 void CustomCore::gameOver()
 {
+    if (!isGameOver)
+    {
+        isGameOver = true;
+        return;
+    }
+
+    isGameOver = false;
     prevScore = score;
     if (score > highScore) highScore = score;
     score = 0;

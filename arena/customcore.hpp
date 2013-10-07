@@ -28,18 +28,23 @@
 #ifndef CUSTOMCORE_H
 #define CUSTOMCORE_H
 
-#include "inugami/core.hpp"
-
-#include "inugami/animatedsprite.hpp"
-#include "inugami/mesh.hpp"
-#include "inugami/shader.hpp"
-#include "inugami/spritesheet.hpp"
-#include "inugami/texture.hpp"
-
 #include <set>
+#include <vector>
+#include <random>
+
+class GameOver
+{
+public:
+    GameOver(double d, int i)
+        : avg(d)
+        , high(i)
+    {}
+    
+    double avg;
+    int high;
+};
 
 class CustomCore
-    : public Inugami::Core
 {
 public:
     enum class Color
@@ -70,32 +75,20 @@ public:
         bool operator!=(const Loc& in) const;
     };
 
-    CustomCore(const RenderParams &params);
+    CustomCore(int i, int j);
 
+    void go();
     void tick();
-    void draw();
-
-    void drawBoard();
-    void drawScore();
-    void drawLinks();
-    void drawFlash();
 
     Color& cellAt(const Loc& l);
-
-    void selectCell(const Loc& l);
-    void clearSelect();
 
     void swapCells(const Loc& a, const Loc& b, bool force=false);
     void scoreCell(const Loc& l);
     bool getGroup(const Loc& l, Color k, std::set<Loc>& s);
 
-    void flash();
-
     void spawn(int n);
 
     void galoSengen();
-
-    void shake_n_bake(int s);
 
     int colorVal(Color c) const;
 
@@ -104,13 +97,6 @@ public:
     bool isScoreTile(const Loc& l) const;
 
 private:
-    Inugami::Texture     colors[int(Color::COUNT)];
-    Inugami::Spritesheet font;
-
-    Inugami::Mesh    panel;
-    Inugami::Mesh    piece;
-    Inugami::Mesh    diamond;
-
     struct
     {
         int numColors;
@@ -123,30 +109,15 @@ private:
 
     std::vector<Color> board;
 
-    struct {Loc loc; bool on;} selection;
-    struct {int timer; Color color;} flashing;
-
     int score;
-
-    Loc hoverCell;
-    std::set<Loc> hoverGroup;
-    bool hoverScore;
-
-    bool isGameOver;
 
     std::mt19937 rng;
 
-    struct {float px, py, deg; Loc c[2];} swapAnim;
-    std::set<Color*> spawning;
-    float spawnScale;
-
-    float screenShake;
-
-    int prevScore;
     int highScore;
-
-    std::vector<int> pointList;
-
+    int totalScore;
+    int runs;
+    int run;
+    
     std::set<Loc> scoreZone;
 };
 

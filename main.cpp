@@ -39,7 +39,7 @@ using namespace Inugami;
 
 void dumpProfiles();
 
-int main()
+int main(int argc, char* argv[])
 {
     profiler = new Profiler();
     ScopedProfile prof(profiler, "Main");
