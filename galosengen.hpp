@@ -24,15 +24,16 @@ public:
     {}
 
     template <typename A, typename B>
-    ChainChomp operator()(const A& a, const B& b) const
+    ChainChomp& operator()(const A& a, const B& b)
     {
-        if (state != N) return ChainChomp(state);
-        if (a<b)  return ChainChomp(T);
-        if (a==b) return ChainChomp(N);
-        return ChainChomp(F);
+        if (state != N) return *this;
+        if      (a<b)  state = T;
+        else if (a==b) state = N;
+        else           state = F;
+        return *this;
     }
 
-    operator bool() const
+    bool get() const
     {
         return (state == T);
     }

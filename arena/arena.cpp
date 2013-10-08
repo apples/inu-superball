@@ -24,6 +24,10 @@ int main(int argc, char* argv[])
         {
             return go.high;
         }
+        catch (...)
+        {
+            return 0;
+        }
         return 0;
     };
     

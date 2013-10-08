@@ -182,6 +182,8 @@ GaloSengen::GaloSengen(int w, int h, int ms, Array c)
         for (int c=width-2; c<width; ++c) scoreZone.push_back(Loc(r, c));
     }
 
+    panicAI.push_back(&BoardInfo::need);
+
     loadAI(normalAI, "galo-normal.txt");
     loadAI(panicAI , "galo-panic.txt");
 
@@ -330,7 +332,7 @@ Ptr<Action> GaloSengen::play(Board board)
 
                     const AISpec& spec = (panicMode? panicAI : normalAI);
 
-                    ChainChomp cc = releaseTheChains();
+                    ChainChomp cc(ChainChomp::N);
 
                     for (int act=0; act<spec.size(); ++act)
                     {
@@ -341,15 +343,15 @@ Ptr<Action> GaloSengen::play(Board board)
                         );
                         if (ssl == inverseSpecs.end())
                         {
-                            cc = cc((*after).*param, (*swpInfo).*param);
+                            cc((*after).*param, (*swpInfo).*param);
                         }
                         else
                         {
-                            cc = cc((*swpInfo).*param, (*after).*param);
+                            cc((*swpInfo).*param, (*after).*param);
                         }
                     }
 
-                    if (cc)
+                    if (cc.get())
                     {
                         swp.clear();
                         swp.push_back(std::make_pair(locs[i], locs[j]));
