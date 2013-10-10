@@ -93,7 +93,7 @@ public:
 
     void spawn(int n);
 
-    void galoSengen();
+    void executeAI();
 
     void shake_n_bake(int s);
 

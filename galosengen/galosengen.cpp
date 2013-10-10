@@ -15,10 +15,6 @@
     using namespace Inugami;
 #endif // INU_PROFILE
 
-#ifdef SUPER_SAIYAN
-    #include <thread>
-#endif // SUPER_SAIYAN
-
 const GaloSengen::Cell GaloSengen::EMPTY = '.';
 
 GaloSengen::Cell& GaloSengen::cellify(Cell& c) //static
@@ -27,101 +23,6 @@ GaloSengen::Cell& GaloSengen::cellify(Cell& c) //static
     if (c=='*') c = '.';
     return c;
 }
-
-/* Loc --                             --                               -- Loc */
-
-Loc::Loc()
-    : r()
-    , c()
-{}
-
-Loc::Loc(int r, int c)
-    : r(r)
-    , c(c)
-{}
-
-Loc::Loc(const Loc& in)
-    : r(in.r)
-    , c(in.c)
-{}
-
-bool Loc::operator<(const Loc& in) const
-{
-    if (r < in.r) return true;
-    if (r > in.r) return false;
-    return (c < in.c);
-}
-
-/* LocGroup --                        --                          -- LocGroup */
-
-LocGroup::LocGroup(int w, int h)
-    : width(w)
-    , height(h)
-    , dj(width*height)
-    , rootCount(width*height)
-{}
-
-LocGroup::Group LocGroup::join(const Loc& a, const Loc& b)
-{
-    Group rootA = getGroup(a);
-    Group rootB = getGroup(b);
-    if (rootA == rootB) return rootA;
-    --rootCount;
-    return dj.Union(rootA, rootB);
-}
-
-LocGroup::Group LocGroup::getGroup(const Loc& a)
-{
-    return rawRoot(toIndex(a));
-}
-
-int LocGroup::getSize(Group a)
-{
-    int rval = 0;
-
-    const int wh = width*height;
-    for (int i=0; i<wh; ++i)
-    {
-        if (rawRoot(i) == a) ++rval;
-    }
-
-    return rval;
-}
-
-Ptr<std::map<LocGroup::Group, int> > LocGroup::getSizes()
-{
-    std::map<Group, int>* rval = new std::map<Group, int>;
-
-    const int wh = width*height;
-    for (int i=0; i<wh; ++i)
-    {
-        ++(*rval)[rawRoot(i)];
-    }
-
-    return rval;
-}
-
-int LocGroup::numRoots() const
-{
-    return rootCount;
-}
-
-int LocGroup::toIndex(const Loc& a) const
-{
-    return (a.r*width + a.c);
-}
-
-Loc LocGroup::fromIndex(int a) const
-{
-    return Loc(a/width, a%width);
-}
-
-int LocGroup::rawRoot(int a)
-{
-    return dj.Find(a);
-}
-
-/* GaloSengen --                      --                        -- GaloSengen */
 
 GaloSengen::BoardInfo::BoardInfo(int w, int h)
     : numGroups(0)
@@ -181,8 +82,6 @@ GaloSengen::GaloSengen(int w, int h, int ms, Array c)
         for (int c=0; c<2; ++c)           scoreZone.push_back(Loc(r, c));
         for (int c=width-2; c<width; ++c) scoreZone.push_back(Loc(r, c));
     }
-
-    panicAI.push_back(&BoardInfo::need);
 
     loadAI(normalAI, "galo-normal.txt");
     loadAI(panicAI , "galo-panic.txt");
@@ -484,14 +383,9 @@ Ptr<GaloSengen::BoardInfo> GaloSengen::getInfo(const Board& board)
 
     rval->numGroups = rval->groups.numRoots();
 
-#ifdef SUPER_SAIYAN
-    std::thread threadWeakGroups([&]
-#else
-    (
-#endif // SUPER_SAIYAN
     {
         rval->numWeakGroups = weakGroups(board);
-    });
+    }
 
     std::map<Loc, LocGroup::Group> loc2grp;
 
@@ -584,10 +478,6 @@ Ptr<GaloSengen::BoardInfo> GaloSengen::getInfo(const Board& board)
 
     rval->numScoreGroups = scoreGroups.size();
     rval->numFieldGroups = rval->numGroups - rval->numScoreGroups;
-
-#ifdef SUPER_SAIYAN
-    threadWeakGroups.join();
-#endif // SUPER_SAIYAN
 
     return rval;
 }

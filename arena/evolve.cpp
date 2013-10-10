@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) try
     while (true)
     {
         vector<Gene> generation;
-        Enumerator en(4);
+        Enumerator en(3);
         do
         {
             vector<int> seq = en.data;

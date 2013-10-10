@@ -47,6 +47,13 @@ int main(int argc, char* argv[])
     std::ofstream logfile("log.txt");
     logger = new Logger<5>(logfile);
 
+    logger->log<1>("Args:");
+    while (*argv)
+    {
+        logger->log<1>(*argv);
+        ++argv;
+    }
+
     CustomCore::RenderParams renparams;
     renparams.width = 800;
     renparams.height = 600;

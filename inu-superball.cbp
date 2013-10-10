@@ -76,7 +76,9 @@
 					<Add option="-std=c++11" />
 					<Add option="-Wextra" />
 					<Add option="-Wall" />
+					<Add option="-g" />
 					<Add option="-static" />
+					<Add option="-Og" />
 					<Add option="-DGLEW_STATIC" />
 					<Add option="-DPNG_STATIC" />
 					<Add option="-DZLIB_STATIC" />
@@ -107,7 +109,6 @@
 					<Add option="-DZLIB_STATIC" />
 				</Compiler>
 				<Linker>
-					<Add option="-s" />
 					<Add option="-static" />
 					<Add library="z" />
 					<Add library="glew32" />
@@ -134,11 +135,13 @@
 			<Add library="png" />
 		</Linker>
 		<Unit filename="DJ.h" />
+		<Unit filename="action.cpp" />
+		<Unit filename="action.hpp" />
 		<Unit filename="customcore.cpp" />
 		<Unit filename="customcore.hpp" />
 		<Unit filename="dj.cpp" />
-		<Unit filename="galosengen.cpp" />
-		<Unit filename="galosengen.hpp" />
+		<Unit filename="externalai.cpp" />
+		<Unit filename="externalai.hpp" />
 		<Unit filename="inugami/animatedsprite.cpp">
 			<Option virtualFolder="Resource Handles/" />
 		</Unit>
@@ -267,6 +270,8 @@
 		</Unit>
 		<Unit filename="libexecstream/exec-stream.cpp" />
 		<Unit filename="libexecstream/exec-stream.h" />
+		<Unit filename="loc.cpp" />
+		<Unit filename="loc.hpp" />
 		<Unit filename="main.cpp" />
 		<Unit filename="meta.cpp" />
 		<Unit filename="meta.hpp" />
@@ -276,6 +281,7 @@
 		<Unit filename="shaders/crazy.vert">
 			<Option virtualFolder="Shaders/" />
 		</Unit>
+		<Unit filename="utils.inl" />
 		<Extensions>
 			<code_completion />
 			<envvars />

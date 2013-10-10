@@ -26,7 +26,7 @@
  ******************************************************************************/
 
 #include "customcore.hpp"
-#include "galosengen.hpp"
+#include "externalai.hpp"
 
 #include "meta.hpp"
 
@@ -173,12 +173,12 @@ void CustomCore::tick()
         gameOver();
     }
 
-    if (!isGameOver && keyFast) galoSengen();
+    if (!isGameOver && keyFast) executeAI();
 
     if (keyAI.pressed())
     {
         if (isGameOver) gameOver();
-        else galoSengen();
+        else executeAI();
     }
 
     if (keyFlood.pressed())
@@ -645,9 +645,9 @@ void CustomCore::spawn(int n)
     }
 }
 
-void CustomCore::galoSengen()
+void CustomCore::executeAI()
 {
-    GaloSengen gs(rules.width, rules.height, rules.minScore, "pbygr");
+    ExternalAI ai("./sb-play", rules.width, rules.height, rules.minScore, "pbygr");
 
     std::vector<std::string> bored(rules.height, std::string(rules.width, '.'));
 
@@ -660,17 +660,25 @@ void CustomCore::galoSengen()
         , {Color::RED    , 'r'}
     };
 
+    std::map<char, char> conv2 = {
+          {'.', '*'}
+        , {'p', 'P'}
+        , {'b', 'B'}
+        , {'y', 'Y'}
+        , {'g', 'G'}
+        , {'r', 'R'}
+    };
+
     for (unsigned r=0; r<rules.height; ++r)
     {
         for (unsigned c=0; c<rules.width; ++c)
         {
             bored[r][c] = conv[cellAt({r, c})];
+            if (scoreZone.find({r,c}) != scoreZone.end()) bored[r][c] = conv2[bored[r][c]];
         }
     }
 
-    auto act = gs.play(bored);
-
-    auto str = act->str();
+    auto str = ai.play(bored);
 
     logger->log<3>(str);
 
