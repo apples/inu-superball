@@ -119,6 +119,33 @@
 					<Add library="kernel32" />
 				</Linker>
 			</Target>
+			<Target title="Fallback - Windows">
+				<Option platforms="Windows;" />
+				<Option output="inu-superball_fallback" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/release/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-fexpensive-optimizations" />
+					<Add option="-O3" />
+					<Add option="-static" />
+					<Add option="-DGLEW_STATIC" />
+					<Add option="-DPNG_STATIC" />
+					<Add option="-DZLIB_STATIC" />
+					<Add option="-DINU_MESH_FALLBACK" />
+					<Add option="-DINU_NO_SHADERS" />
+				</Compiler>
+				<Linker>
+					<Add option="-static" />
+					<Add library="z" />
+					<Add library="glew32" />
+					<Add library="opengl32" />
+					<Add library="glu32" />
+					<Add library="gdi32" />
+					<Add library="user32" />
+					<Add library="kernel32" />
+				</Linker>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wredundant-decls" />
@@ -134,12 +161,8 @@
 			<Add library="glfw3" />
 			<Add library="png" />
 		</Linker>
-		<Unit filename="DJ.h" />
-		<Unit filename="action.cpp" />
-		<Unit filename="action.hpp" />
 		<Unit filename="customcore.cpp" />
 		<Unit filename="customcore.hpp" />
-		<Unit filename="dj.cpp" />
 		<Unit filename="externalai.cpp" />
 		<Unit filename="externalai.hpp" />
 		<Unit filename="inugami/animatedsprite.cpp">
@@ -270,8 +293,6 @@
 		</Unit>
 		<Unit filename="libexecstream/exec-stream.cpp" />
 		<Unit filename="libexecstream/exec-stream.h" />
-		<Unit filename="loc.cpp" />
-		<Unit filename="loc.hpp" />
 		<Unit filename="main.cpp" />
 		<Unit filename="meta.cpp" />
 		<Unit filename="meta.hpp" />
@@ -281,7 +302,6 @@
 		<Unit filename="shaders/crazy.vert">
 			<Option virtualFolder="Shaders/" />
 		</Unit>
-		<Unit filename="utils.inl" />
 		<Extensions>
 			<code_completion />
 			<envvars />

@@ -31,7 +31,11 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-static" />
 		</Compiler>
+		<Linker>
+			<Add option="-static" />
+		</Linker>
 		<Unit filename="DJ.h" />
 		<Unit filename="action.cpp" />
 		<Unit filename="action.hpp" />
