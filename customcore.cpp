@@ -90,6 +90,8 @@ CustomCore::CustomCore(const RenderParams &params)
     , piece(Geometry::fromDisc(0.9f, 0.9f, 16))
     , diamond(Geometry::fromDisc(0.3f, 0.3f, 4))
 
+    , shader(ShaderProgram::fromName("shaders/crazy"))
+
     , rules{5, 5, 3, 10, 8, 5}
 
     , board(rules.width*rules.height, Color::NONE)
@@ -125,6 +127,9 @@ CustomCore::CustomCore(const RenderParams &params)
     addCallback([&]{tick();draw();}, 60.0);
 
     setWindowTitle("Inu SuperBall", true);
+
+    setShader(shader);
+    shader.setUniform("screenres", Vec2{getParams().width, getParams().height});
 
 #if 1
     for (int r=2; r<rules.height-2; ++r)

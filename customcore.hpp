@@ -111,6 +111,8 @@ private:
     Inugami::Mesh    piece;
     Inugami::Mesh    diamond;
 
+    Inugami::Shader  shader;
+
     struct
     {
         int numColors;

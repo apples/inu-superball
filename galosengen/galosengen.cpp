@@ -31,6 +31,7 @@ GaloSengen::BoardInfo::BoardInfo(int w, int h)
     , scoreVal(0)
     , bestSize(0)
     , numScoreGroups(0)
+    , numExtendedGroups(0)
     , numScorable(0)
     , numWeakGroups(0)
     , numSmallGroups(0)
@@ -68,6 +69,7 @@ GaloSengen::GaloSengen(int w, int h, int ms, Array c)
     , colors(c)
     , colorVals()
     , scoreZone()
+    , extendedZone()
     , normalAI()
     , panicAI()
     , inverseSpecs()
@@ -83,8 +85,33 @@ GaloSengen::GaloSengen(int w, int h, int ms, Array c)
         for (int c=width-2; c<width; ++c) scoreZone.push_back(Loc(r, c));
     }
 
-    loadAI(normalAI, "galo-normal.txt");
-    loadAI(panicAI , "galo-panic.txt");
+    for (int r=2; r<height-2; ++r)
+    {
+        extendedZone.push_back(Loc(r, 2));
+        extendedZone.push_back(Loc(r, width-3));
+    }
+
+    for (int c=0; c<2; ++c)
+    {
+        extendedZone.push_back(Loc(1, c));
+        extendedZone.push_back(Loc(height-2, c));
+    }
+
+    for (int c=width-2; c<width; ++c)
+    {
+        extendedZone.push_back(Loc(1, c));
+        extendedZone.push_back(Loc(height-2, c));
+    }
+
+    //loadAI(normalAI, "galo-normal.txt");
+    //loadAI(panicAI , "galo-panic.txt");
+    normalAI.push_back(&BoardInfo::numGroups);
+    normalAI.push_back(&BoardInfo::numScorable);
+    normalAI.push_back(&BoardInfo::need);
+
+    panicAI.push_back(&BoardInfo::need);
+    panicAI.push_back(&BoardInfo::numScorable);
+    panicAI.push_back(&BoardInfo::numGroups);
 
     inverseSpecs.push_back(&BoardInfo::bestSize);
     inverseSpecs.push_back(&BoardInfo::numScorable);
@@ -115,7 +142,7 @@ void GaloSengen::loadAI(AISpec& ai, const char* filename)
 
                 case 1:
                 {
-                    ai.push_back(&BoardInfo::numEmpty);
+                    ai.push_back(&BoardInfo::numExtendedGroups);
                 break;}
 
                 case 2:
@@ -435,6 +462,7 @@ Ptr<GaloSengen::BoardInfo> GaloSengen::getInfo(const Board& board)
     }
 
     SG scoreGroups;
+    SG extendedGroups;
 
     int bestScore = 0;
 
@@ -471,12 +499,23 @@ Ptr<GaloSengen::BoardInfo> GaloSengen::getInfo(const Board& board)
                 if (need < rval->need) rval->need = need;
             }
         }
+
+        for (ZoneIter i=scoreZone.begin(); i!=scoreZone.end(); ++i)
+        {
+            const Cell& cell = board[i->r][i->c];
+            if (cell == EMPTY) continue;
+
+            LocGroup::Group group = loc2grp[*i];
+
+            extendedGroups.insert(group);
+        }
     }
 
     rval->scoreVal *= 10;
     if (scoreGroups.size()>0) rval->scoreVal /= scoreGroups.size();
 
     rval->numScoreGroups = scoreGroups.size();
+    rval->numExtendedGroups = extendedGroups.size();
     rval->numFieldGroups = rval->numGroups - rval->numScoreGroups;
 
     return rval;

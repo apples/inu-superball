@@ -34,6 +34,7 @@ public:
         int scoreVal;
         int bestSize;
         int numScoreGroups;
+        int numExtendedGroups;
         int numScorable;
         int numWeakGroups;
         int numSmallGroups;
@@ -55,6 +56,7 @@ public:
 
     std::map<Cell, int> colorVals;
     Zone scoreZone;
+    Zone extendedZone;
 
     AISpec normalAI;
     AISpec panicAI;
